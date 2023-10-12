@@ -1,19 +1,28 @@
 import time
 import pandas as pd
 from itertools import combinations
+import argparse
 
-BUDGET_LAX = 500
-CSV_FILE = "data_bruteforce.csv"
+BUDGET_MAX = 500
 
 
-def get_data(data_to_read):
+def load_data(data_to_read):
+    """
+    Load data from a CSV file and return a DataFrame.
+    :param data_to_read: The path to the CSV file.
+    :return: The DataFrame containing the data.
+    """
     data = pd.read_csv(data_to_read, sep=",")
-    print(data)
     return data
 
 
 def find_best_combination(actions_data, budget_limit):
-    # action[1] = Pandas Series du tuple (index Dataframe, Pandas Serie)
+    """
+    Find the best investment action combination using a brute-force approach.
+    :param actions_data: DataFrame with data on investment actions.
+    :param budget_limit: The maximum budget for investment.
+    :return: List of the best actions to purchase.
+    """
     best_combination = []
     max_profit = 0
 
@@ -32,20 +41,29 @@ def find_best_combination(actions_data, budget_limit):
 
 
 def main():
-    data = get_data(CSV_FILE)
+    parser = argparse.ArgumentParser(
+        description="Find the best investment combination from a CSV file."
+    )
+    parser.add_argument(
+        "csv_file", type=str, help="Path to the CSV file with investment data"
+    )
+    args = parser.parse_args()
+
+    data = load_data(args.csv_file)
     start_time = time.time()
-    best_combination = find_best_combination(data, BUDGET_LAX)
+    best_combination = find_best_combination(data, BUDGET_MAX)
     end_time = time.time()
 
-    print("Meilleure combinaison d'actions :")
+    print("Best combination of actions:")
     for action in best_combination:
         print(
-            action["name"], "- Prix :", action["price"], "- Profit :", action["profit"]
+            action["name"], "- Price:", action["price"], "- Profit:", action["profit"]
         )
-    print("Profit total :", sum(action["profit"] for action in best_combination))
+    print("Total profit:", sum(action["profit"] for action in best_combination))
 
-    execution_time = end_time - start_time
-    print("Temps d'exécution :", execution_time, "secondes")
+    execution_time = round(end_time - start_time, 2)
+    print("Execution time:", execution_time, "seconds")
 
 
-main()
+if __name__ == "__main__":
+    main()
