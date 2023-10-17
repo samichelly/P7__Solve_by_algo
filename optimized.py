@@ -6,42 +6,20 @@ BUDGET_MAX = 500
 
 
 def load_data(data_to_read):
-    """
-    Load data from a CSV file and return a DataFrame.
-    :param data_to_read: The path to the CSV file.
-    :return: The DataFrame containing the data.
-    """
     data = pd.read_csv(data_to_read, sep=",")
     return data
 
 
-def find_best_combination_greedy(actions_data, budget_limit):
-    """
-    Find the best investment action combination using a non-optimized greedy approach.
-    :param actions_data: DataFrame with data on investment actions.
-    :param budget_limit: The maximum budget for investment.
-    :return: List of the best actions to purchase.
-    """
-    best_combination = []
-    current_budget = 0
-    max_profit = 0
-
-    for index, action in actions_data.iterrows():
-        if current_budget + action["price"] <= budget_limit:
-            best_combination.append(action)
-            current_budget += action["price"]
-            max_profit += action["profit"]
-
-    return best_combination
+def clean_data(actions_data):
+    # Remove rows with negative or zero price and profit
+    cleaned_data = actions_data[
+        (actions_data["price"] > 0) & (actions_data["profit"] > 0)
+    ]
+    print("Number of valid actions, ", len(cleaned_data))
+    return cleaned_data
 
 
 def find_best_combination_optimized(actions_data, budget_limit):
-    """
-    Find the best investment action combination using an optimized greedy approach.
-    :param actions_data: DataFrame with data on investment actions.
-    :param budget_limit: The maximum budget for investment.
-    :return: List of the best actions to purchase.
-    """
     actions_data = actions_data.assign(
         profit_price_ratio=actions_data["profit"] / actions_data["price"]
     )
@@ -67,20 +45,12 @@ def main():
     parser.add_argument(
         "csv_file", type=str, help="Path to the CSV file with investment data"
     )
-    parser.add_argument(
-        "--optimized", action="store_true", help="Use the optimized greedy algorithm"
-    )
     args = parser.parse_args()
 
-    # Load data from the specified CSV file
     data = load_data(args.csv_file)
+    cleaned_data = clean_data(data)  # Clean the data
     start_time = time.time()
-
-    if args.optimized:
-        best_combination = find_best_combination_optimized(data, BUDGET_MAX)
-    else:
-        best_combination = find_best_combination_greedy(data, BUDGET_MAX)
-
+    best_combination = find_best_combination_optimized(cleaned_data, BUDGET_MAX)
     end_time = time.time()
 
     print("Best combination of actions:")
