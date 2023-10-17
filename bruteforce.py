@@ -3,7 +3,7 @@ import pandas as pd
 from itertools import combinations
 import argparse
 
-BUDGET_MAX = 500
+BUDGET_MAX = 50
 
 
 def load_data(data_to_read):
@@ -14,6 +14,19 @@ def load_data(data_to_read):
     """
     data = pd.read_csv(data_to_read, sep=",")
     return data
+
+
+def clean_data(actions_data):
+    """
+    Clean the data by removing rows with negative or zero price and profit.
+    :param actions_data: DataFrame with data on investment actions.
+    :return: The cleaned DataFrame.
+    """
+    cleaned_data = actions_data[
+        (actions_data["price"] > 0) & (actions_data["profit"] > 0)
+    ]
+    print("Number of valid actions :", len(cleaned_data))
+    return cleaned_data
 
 
 def find_best_combination(actions_data, budget_limit):
@@ -50,8 +63,9 @@ def main():
     args = parser.parse_args()
 
     data = load_data(args.csv_file)
+    cleaned_data = clean_data(data)  # Clean the data
     start_time = time.time()
-    best_combination = find_best_combination(data, BUDGET_MAX)
+    best_combination = find_best_combination(cleaned_data, BUDGET_MAX)
     end_time = time.time()
 
     print("Best combination of actions:")
