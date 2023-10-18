@@ -1,4 +1,4 @@
-﻿# P7__Solve_by_algo
+﻿# Project 7 : Investment Portfolio Optimization
 
 
 ## Introduction
