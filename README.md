@@ -20,3 +20,18 @@ To get started, you need to clone this repository to your local machine. You can
 
 ```bash
 git clone https://github.com/samichelly/P7__Solve_by_algo.git
+```
+
+## Usage
+
+Once you have cloned the repository, you can run the investment portfolio optimization algorithms by executing the following commands in your terminal:
+
+### Brute-force Version
+```bash
+python bruteforce.py filename.csv
+```
+
+### Optimized Version
+```bash
+python optimized.py data.csv
+```
