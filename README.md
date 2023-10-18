@@ -19,4 +19,4 @@ Both algorithms are designed to provide a list of the most profit-yielding stock
 To get started, you need to clone this repository to your local machine. You can do this by running the following command:
 
 ```bash
-git clone https://github.com/your-username/investment-portfolio-optimization.git
+git clone https://github.com/samichelly/P7__Solve_by_algo.git
