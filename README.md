@@ -33,5 +33,5 @@ python bruteforce.py filename.csv
 
 ### Optimized Version
 ```bash
-python optimized.py data.csv
+python optimized.py filename.csv
 ```
