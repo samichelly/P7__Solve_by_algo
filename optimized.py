@@ -1,8 +1,9 @@
 import time
-import pandas as pd
 import argparse
+import numpy as np
+import pandas as pd
 
-BUDGET_MAX = 50
+BUDGET_DEFAUT = 100
 
 
 def load_data(data_file):
@@ -15,6 +16,14 @@ def load_data(data_file):
     return data
 
 
+def sort_by_ratio(cleaned_data):
+    # Add a new column for profit/price ratio and sort by the ratio in descending order
+    cleaned_data = cleaned_data.assign(
+        profit_price_ratio=cleaned_data["profit"] / cleaned_data["price"]
+    )
+    return cleaned_data.sort_values(by="profit_price_ratio", ascending=False)
+
+
 def clean_data(actions_data):
     """
     Remove rows with negative or zero price or profit from the data.
@@ -25,21 +34,16 @@ def clean_data(actions_data):
         (actions_data["price"] > 0) & (actions_data["profit"] > 0)
     ]
     print("Number of valid actions:", len(cleaned_data))
-    return cleaned_data
+    return sort_by_ratio(cleaned_data)
 
 
-def find_best_combination_optimized(actions_data, budget_limit):
+def find_best_combination_optimized(actions_data, budget_limit, options=True):
     """
     Find the best investment action combination using an optimized approach.
     :param actions_data: DataFrame with data on investment actions.
     :param budget_limit: The maximum budget for investment.
     :return: List of the best actions to purchase.
     """
-    # Add a new column for profit/price ratio and sort by the ratio in descending order
-    actions_data = actions_data.assign(
-        profit_price_ratio=actions_data["profit"] / actions_data["price"]
-    )
-    actions_data = actions_data.sort_values(by="profit_price_ratio", ascending=False)
 
     # Initialize lists to store actions and calculate the budget and profit
     best_combination = []
@@ -58,6 +62,8 @@ def find_best_combination_optimized(actions_data, budget_limit):
                 len(optional_actions) < 10
             ):  # Limit the number of alternative actions to 10
                 optional_actions.append(action)
+    if options is False:
+        return best_combination
 
     # Store the last action, calculate the budget without it, and find the optional combination
     best_combination_without_last_action = best_combination[:-1]
@@ -76,58 +82,41 @@ def find_best_combination_optimized(actions_data, budget_limit):
         action["profit"] for action in optional_combination
     )
 
-    # second_max_profit = 0
-
     if max_profit >= second_max_profit:
         return best_combination
     else:
         return best_combination_without_last_action + optional_combination
 
 
-"""
-def find_best_combination_optimized(actions_data, budget_limit):
-    # Create new column ratio (profit/price) and sort on this column
-    actions_data = assign_profit_price_ratio(actions_data)
-    actions_data = sort_by_profit_price_ratio(actions_data)
+def find_best_combination_dynamic_prog(actions, budget, precision, decimal_to_apply):
+    actions["price"] = (actions["price"] * precision).round(decimals=decimal_to_apply)
+    budget_dynamic = budget * precision
+    num_actions = len(actions)
+    matrix = np.zeros((num_actions + 1, budget_dynamic + 1), dtype=int)
 
-    # Init variables and for actions, current_budget and max_profit
-    best_combination = []
-    current_budget = 0
-    max_profit = 0
-    optional_actions = []  # To stock alternative actions
+    for i in range(1, num_actions + 1):
+        for j in range(budget_dynamic + 1):
+            if actions.iloc[i - 1]["price"] > j:
+                matrix[i][j] = matrix[i - 1][j]
+            else:
+                matrix[i][j] = max(
+                    matrix[i - 1][j],
+                    matrix[i - 1][j - int(actions.iloc[i - 1]["price"])]
+                    + int(actions.iloc[i - 1]["profit"]),
+                )
 
-    # Add actions until current_budget is under or equal to budget_limit
-    for action in actions_data:
-        if is_within_budget(current_budget, action):
-            add_action_to_combination(best_combination, action)
-            update_budget_and_profit(current_budget, max_profit, action)
-        # If current_budget is over, add some others actions (10 for instance) in new list
-        else:
-            if can_add_as_optional_action(optional_actions):
-                add_action_to_optional_list(optional_actions, action)
+    actions_retenues = []
+    i, j = num_actions, budget_dynamic
+    while i > 0 and j > 0:
+        if matrix[i][j] != matrix[i - 1][j]:
+            actions_retenues.append(actions.iloc[i - 1])
+            j -= int(actions.iloc[i - 1]["price"])
+        i -= 1
 
-    # Stockez la dernière action, calculez le budget sans elle et trouvez la combinaison optionnelle
-    best_combination_without_last_action = remove_last_action(best_combination)
-    last_action = get_last_action(best_combination)
-    budget_without_last = calculate_budget_without_last_action(current_budget, last_action)
-    max_profit_without_last = calculate_max_profit_without_last_action(max_profit, last_action)
-    optional_combination = create_empty_optional_combination()
+    for i in actions_retenues:
+        i["price"] = i["price"] / precision
 
-    # Without last_action calculate and add to optionnal_combination until current_budget is over
-    for action in optional_actions:
-        if can_add_action_to_budget(budget_without_last, action):
-            add_action_to_combination(optional_combination, action)
-            update_budget_without_last(budget_without_last, action)
-
-    # Calculate profit with optionnal_actions
-    second_max_profit = calculate_second_max_profit(max_profit_without_last, optional_combination)
-
-
-    if is_max_profit_better(max_profit, second_max_profit): # If max_profit (first calcul) is better, return best_combination
-        return best_combination
-    else: # Else, return second combination of actions
-        return best_combination_without_last_action + optional_combination
-"""
+    return actions_retenues
 
 
 def export_to_csv(data, filename):
@@ -143,6 +132,32 @@ def export_to_csv(data, filename):
     df.to_csv(filename, index=False)
 
 
+def get_user_budget():
+    user_budget = input("\nDefine your budget (press Enter for default): ")
+    return int(user_budget) if user_budget else BUDGET_DEFAUT
+
+
+def get_precision(cleaned_data):
+    count_decimals = lambda x: len(str(x).split(".")[1]) if "." in str(x) else 0
+    max_decimals = cleaned_data["price"].apply(count_decimals).max()
+
+    while True:
+        print(
+            f"\nYour current precision is {max_decimals}. "
+            "Do you want to reduce the precision?"
+        )
+        print("Your choice can't be higher than the current precision.")
+        print("(Higher Precision = Accurate Profit = Longer Processing Time)")
+        print("0 - 0 decimal\n1 - 1 decimal\n2 - 2 decimals\n")
+
+        decimal = int(input())
+
+        if decimal >= 0 and decimal <= max_decimals:
+            return 10**decimal, decimal
+        else:
+            print("Invalid choice. Please choose a valid precision.")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Find the best investment combination from a CSV file."
@@ -154,23 +169,57 @@ def main():
 
     data = load_data(args.csv_file)
     cleaned_data = clean_data(data)
+
+    SET_BUDGET = get_user_budget()
+
+    calcul_method = int(
+        input(
+            "\nDefine your calculation method\n"
+            "-1 Dynamic\n-2 Optimized without options\n-3 Optimized with options\n"
+        )
+    )
+
+    if calcul_method == 1:
+        precision, decimal_to_apply = get_precision(cleaned_data)
+    elif calcul_method not in {2, 3}:
+        print("Invalid choice")
+        return
+
     start_time = time.time()
-    best_combination = find_best_combination_optimized(cleaned_data, BUDGET_MAX)
+    print("Calculating the best combination...")
+
+    if calcul_method == 1:
+        best_combination = find_best_combination_dynamic_prog(
+            cleaned_data, SET_BUDGET, precision, decimal_to_apply
+        )
+        print("Best combination by dynamic prog :")
+    elif calcul_method == 2:
+        best_combination = find_best_combination_optimized(
+            cleaned_data, SET_BUDGET, options=False
+        )
+        print("Best combination by optimized without options :")
+    elif calcul_method == 3:
+        best_combination = find_best_combination_optimized(cleaned_data, SET_BUDGET)
+        print("Best combination by optimized with options :")
+
     end_time = time.time()
 
-    print("Best combination of actions:")
     for action in best_combination:
         print(
-            action["name"], "- Price:", action["price"], "- Profit:", action["profit"]
+            action["name"],
+            "- Price:",
+            round(action["price"], 2),
+            "- Profit:",
+            action["profit"],
         )
-    print("Total cost:", sum(action["price"] for action in best_combination))
-    print("Total profit:", sum(action["profit"] for action in best_combination))
+    print("Total cost:", round(sum(action["price"] for action in best_combination), 2))
+    print(
+        "Total profit:", round(sum(action["profit"] for action in best_combination), 2)
+    )
 
     execution_time = round(end_time - start_time, 2)
     print("Execution time:", execution_time, "seconds")
-    return best_combination
 
 
 if __name__ == "__main__":
-    best_combination = main()
-    export_to_csv(best_combination, "result_optimized.csv")
+    main()
