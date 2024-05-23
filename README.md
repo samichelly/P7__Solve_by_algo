@@ -1,9 +1,8 @@
-﻿# Project 7 : Investment Portfolio Optimization
+# PROJECT_7__Investment_Portfolio_Optimization
 
+## Project Description
 
-## Introduction
-
-Welcome to the 7th project in the Python path at Openclassrooms. The objective of this project is to create two algorithms aimed at maximizing client profits over a two-year investment period. These algorithms come in two versions:
+This project is the seventh in the OpenClassrooms - Python Application Developer training program. The objective is to create two algorithms aimed at maximizing client profits over a two-year investment period. These algorithms come in two versions:
 
 - The Brute-force Version
 - The Optimized Version
@@ -13,6 +12,10 @@ Both algorithms are designed to provide a list of the most profit-yielding stock
 - Each stock can only be purchased once.
 - Fractional stock purchases are not allowed.
 - The maximum budget for each client is capped at 500 euros.
+
+The Optimized Version is further divided into two algorithms of your choice:
+- A Greedy Algorithm
+- An Algorithm using Dynamic Programming
 
 ## Installation
 
